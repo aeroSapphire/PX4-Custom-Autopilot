@@ -4,9 +4,9 @@ px4_add_module(
 	SRCS
 		interceptor_control.cpp
 		interceptor_control.hpp
-		pitch_damper.cpp
-		roll_damper.cpp
-		yaw_damper.cpp
+		pitch_damper_controller.cpp
+		roll_damper_controller.cpp
+		yaw_damper_controller.cpp
 	DEPENDS
 		uORB
 		px4_work_queue

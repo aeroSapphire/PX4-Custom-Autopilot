@@ -1,8 +1,8 @@
 #pragma once
 
-#include "yaw_damper.h"
-#include "roll_damper.h"
-#include "pitch_damper.h"
+#include "yaw_damper_controller.h"
+#include "roll_damper_controller.h"
+#include "pitch_damper_controller.h"
 
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/mathlib.h>
@@ -33,6 +33,7 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_servos.h>
+#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/sensor_accel.h>
 
 
@@ -67,9 +68,11 @@ public:
 	static InterceptorControl *instance() { return static_cast<InterceptorControl *>(ModuleBase<InterceptorControl>::_object.load()); }
 
 
-	roll_damper _roll_damper;
-	pitch_damper _pitch_damper;
-	yaw_damper _yaw_damper;
+	roll_damper_controller _roll_damper;
+	pitch_damper_controller _pitch_damper;
+	yaw_damper_controller _yaw_damper;
+	// NormalAccelController _normal_acc_controller;
+
 
 
 
@@ -85,11 +88,12 @@ private:
 	uORB::Subscription _sensor_accel_sub{ORB_ID(sensor_accel)}; // Correctly declare the subscription
 
 	uORB::Publication<actuator_servos_s> _actuator_servos_pub{ORB_ID(actuator_servos)};
+	uORB::Publication<actuator_controls_s> _actuator_controls_0_pub{ORB_ID(actuator_controls_0)};
 
 	AccelCommands _accel_commands;
 
 
-
+	bool _initialized{false};
 	bool get_accel_command(matrix::Vector3f &vec);
 	void parameters_update();
 	bool init();

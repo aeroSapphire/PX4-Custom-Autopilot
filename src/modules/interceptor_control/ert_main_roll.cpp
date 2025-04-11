@@ -1,11 +1,11 @@
 //
 // File: ert_main.cpp
 //
-// Code generated for Simulink model 'roll_damper'.
+// Code generated for Simulink model 'roll_damper_controller'.
 //
-// Model version                  : 1.1
+// Model version                  : 1.5
 // Simulink Coder version         : 9.9 (R2023a) 19-Nov-2022
-// C/C++ source code generated on : Mon Dec 23 22:53:04 2024
+// C/C++ source code generated on : Thu Apr 10 03:36:04 2025
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -13,21 +13,21 @@
 // Validation result: Not run
 //
 #include <stdio.h>              // This example main program uses printf/fflush
-#include "roll_damper.h"               // Model header file
+#include "roll_damper_controller.h"    // Model header file
 
-static roll_damper roll_damper_Obj;    // Instance of model class
+static roll_damper_controller roll_damper_controller_Obj;// Instance of model class 
 
 // '<Root>/roll_rate_command'
-static real32_T arg_roll_rate_command{ 0.0F };
+static real_T arg_roll_rate_command{ 0.0 };
 
-// '<Root>/roll_rate'
-static real32_T arg_roll_rate{ 0.0F };
+// '<Root>/roll_rate_body'
+static real_T arg_roll_rate_body{ 0.0 };
 
 // '<Root>/speed_magnitude'
-static real32_T arg_speed_magnitude{ 0.0F };
+static real_T arg_speed_magnitude{ 0.0 };
 
 // '<Root>/aileron_deflection'
-static real32_T arg_aileron_deflection;
+static real_T arg_aileron_deflection;
 
 //
 // Associating rt_OneStep with a real-time clock or interrupt service routine
@@ -49,7 +49,7 @@ void rt_OneStep(void)
 
   // Check for overrun
   if (OverrunFlag) {
-    rtmSetErrorStatus(roll_damper_Obj.getRTM(), "Overrun");
+    rtmSetErrorStatus(roll_damper_controller_Obj.getRTM(), "Overrun");
     return;
   }
 
@@ -60,8 +60,8 @@ void rt_OneStep(void)
   // Set model inputs here
 
   // Step the model
-  roll_damper_Obj.step(arg_roll_rate_command, arg_roll_rate, arg_speed_magnitude,
-                       arg_aileron_deflection);
+  roll_damper_controller_Obj.step(arg_roll_rate_command, arg_roll_rate_body,
+    arg_speed_magnitude, arg_aileron_deflection);
 
   // Get model outputs here
 
@@ -86,10 +86,10 @@ int_T main(int_T argc, const char *argv[])
   (void)(argv);
 
   // Initialize model
-  roll_damper_Obj.initialize();
+  roll_damper_controller_Obj.initialize();
 
   // Attach rt_OneStep to a timer or interrupt service routine with
-  //  period 0.0025 seconds (base rate of the model) here.
+  //  period 0.004 seconds (base rate of the model) here.
   //  The call syntax for rt_OneStep is
   //
   //   rt_OneStep();
@@ -98,12 +98,12 @@ int_T main(int_T argc, const char *argv[])
          "Generated ERT main won't simulate model step behavior. "
          "To change this behavior select the 'MAT-file logging' option.\n");
   fflush((nullptr));
-  while (rtmGetErrorStatus(roll_damper_Obj.getRTM()) == (nullptr)) {
+  while (rtmGetErrorStatus(roll_damper_controller_Obj.getRTM()) == (nullptr)) {
     //  Perform application tasks here
   }
 
   // Terminate model
-  roll_damper_Obj.terminate();
+  roll_damper_controller_Obj.terminate();
   return 0;
 }
 

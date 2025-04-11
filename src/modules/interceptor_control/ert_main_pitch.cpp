@@ -1,11 +1,11 @@
 //
 // File: ert_main.cpp
 //
-// Code generated for Simulink model 'pitch_damper'.
+// Code generated for Simulink model 'pitch_damper_controller'.
 //
-// Model version                  : 1.3
+// Model version                  : 1.1
 // Simulink Coder version         : 9.9 (R2023a) 19-Nov-2022
-// C/C++ source code generated on : Wed Dec 18 01:41:49 2024
+// C/C++ source code generated on : Thu Apr 10 03:25:24 2025
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -13,15 +13,18 @@
 // Validation result: Not run
 //
 #include <stdio.h>              // This example main program uses printf/fflush
-#include "pitch_damper.h"              // Model header file
+#include "pitch_damper_controller.h"   // Model header file
 
-static pitch_damper pitch_damper_Obj;  // Instance of model class
+static pitch_damper_controller pitch_damper_controller_Obj;// Instance of model class 
 
 // '<Root>/pitch_rate_command'
 static real32_T arg_pitch_rate_command{ 0.0F };
 
-// '<Root>/pitch_rate'
-static real32_T arg_pitch_rate{ 0.0F };
+// '<Root>/pitch_rate_body'
+static real32_T arg_pitch_rate_body{ 0.0F };
+
+// '<Root>/speed_magnitude'
+static real32_T arg_speed_magnitude{ 0.0F };
 
 // '<Root>/elevator_deflection'
 static real32_T arg_elevator_deflection;
@@ -46,7 +49,7 @@ void rt_OneStep(void)
 
   // Check for overrun
   if (OverrunFlag) {
-    rtmSetErrorStatus(pitch_damper_Obj.getRTM(), "Overrun");
+    rtmSetErrorStatus(pitch_damper_controller_Obj.getRTM(), "Overrun");
     return;
   }
 
@@ -57,8 +60,8 @@ void rt_OneStep(void)
   // Set model inputs here
 
   // Step the model
-  pitch_damper_Obj.step(arg_pitch_rate_command, arg_pitch_rate,
-                        arg_elevator_deflection);
+  pitch_damper_controller_Obj.step(arg_pitch_rate_command, arg_pitch_rate_body,
+    arg_speed_magnitude, arg_elevator_deflection);
 
   // Get model outputs here
 
@@ -83,10 +86,10 @@ int_T main(int_T argc, const char *argv[])
   (void)(argv);
 
   // Initialize model
-  pitch_damper_Obj.initialize();
+  pitch_damper_controller_Obj.initialize();
 
   // Attach rt_OneStep to a timer or interrupt service routine with
-  //  period 0.0025 seconds (base rate of the model) here.
+  //  period 0.004 seconds (base rate of the model) here.
   //  The call syntax for rt_OneStep is
   //
   //   rt_OneStep();
@@ -95,12 +98,12 @@ int_T main(int_T argc, const char *argv[])
          "Generated ERT main won't simulate model step behavior. "
          "To change this behavior select the 'MAT-file logging' option.\n");
   fflush((nullptr));
-  while (rtmGetErrorStatus(pitch_damper_Obj.getRTM()) == (nullptr)) {
+  while (rtmGetErrorStatus(pitch_damper_controller_Obj.getRTM()) == (nullptr)) {
     //  Perform application tasks here
   }
 
   // Terminate model
-  pitch_damper_Obj.terminate();
+  pitch_damper_controller_Obj.terminate();
   return 0;
 }
 

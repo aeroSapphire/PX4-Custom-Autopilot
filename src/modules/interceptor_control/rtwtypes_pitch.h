@@ -1,11 +1,11 @@
 //
 // File: rtwtypes.h
 //
-// Code generated for Simulink model 'pitch_damper'.
+// Code generated for Simulink model 'pitch_damper_controller'.
 //
-// Model version                  : 1.3
+// Model version                  : 1.1
 // Simulink Coder version         : 9.9 (R2023a) 19-Nov-2022
-// C/C++ source code generated on : Wed Dec 18 01:41:49 2024
+// C/C++ source code generated on : Thu Apr 10 03:25:24 2025
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M

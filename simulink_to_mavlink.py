@@ -4,7 +4,7 @@ from pymavlink import mavutil
 import time
 
 # UDP Configuration (Simulink -> Python)
-UDP_IP = "192.168.1.154"  # Adjust as needed
+UDP_IP = "192.168.1.64"  # Adjust as needed
 UDP_PORT = 5005           # Match Simulink's send port
 
 # MAVLink Connection (Python -> PX4 SITL)

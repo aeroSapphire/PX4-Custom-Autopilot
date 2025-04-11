@@ -142,9 +142,9 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		mavlink_commanded_accel_t packet;
 		mavlink_msg_commanded_accel_decode(msg, &packet);
 
-		PX4_INFO("Received MAVLink Commanded Accel: Ay=%.2f, Az=%.2f",
-			static_cast<double>(packet.Ay_cmd),
-			static_cast<double>(packet.Az_cmd));
+		// PX4_INFO("Received MAVLink Commanded Accel: Ay=%.2f, Az=%.2f",
+			// static_cast<double>(packet.Ay_cmd),
+			// static_cast<double>(packet.Az_cmd));
 
 		// Store commands in interceptor_control
 		if (InterceptorControl::instance()) {

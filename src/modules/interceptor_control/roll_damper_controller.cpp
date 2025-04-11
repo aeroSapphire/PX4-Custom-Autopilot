@@ -1,26 +1,27 @@
 //
-// File: roll_damper.cpp
+// File: roll_damper_controller.cpp
 //
-// Code generated for Simulink model 'roll_damper'.
+// Code generated for Simulink model 'roll_damper_controller'.
 //
-// Model version                  : 1.1
+// Model version                  : 1.5
 // Simulink Coder version         : 9.9 (R2023a) 19-Nov-2022
-// C/C++ source code generated on : Mon Dec 23 22:53:04 2024
+// C/C++ source code generated on : Thu Apr 10 03:36:04 2025
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
 // Code generation objectives: Unspecified
 // Validation result: Not run
 //
-#include "roll_damper.h"
+#include "roll_damper_controller.h"
 #include "rtwtypes_roll.h"
-#include "roll_damper_private.h"
+#include "roll_damper_controller_private.h"
+#include "roll_damper_controller_data.cpp"
 
-real32_T look1_iflf_binlxpw_rd(real32_T u0, const real32_T bp0[], const real32_T
-  table[], uint32_T maxIndex)
+real_T look1_binlxpw(real_T u0, const real_T bp0[], const real_T table[],
+                     uint32_T maxIndex)
 {
-  real32_T frac;
-  real32_T yL_0d0;
+  real_T frac;
+  real_T yL_0d0;
   uint32_T iLeft;
 
   // Column-major Lookup 1-D
@@ -75,81 +76,72 @@ real32_T look1_iflf_binlxpw_rd(real32_T u0, const real32_T bp0[], const real32_T
 }
 
 // Model step function
-void roll_damper::step(real32_T arg_roll_rate_command, real32_T arg_roll_rate,
-  real32_T arg_speed_magnitude, real32_T &arg_aileron_deflection)
+void roll_damper_controller::step(real_T arg_roll_rate_command, real_T
+  arg_roll_rate_body, real_T arg_speed_magnitude, real_T &arg_aileron_deflection)
 {
+  real_T rtb_Sum1;
+
+  // Sum: '<Root>/Sum1' incorporates:
+  //   Inport: '<Root>/roll_rate_body'
+  //   Inport: '<Root>/roll_rate_command'
+
+  rtb_Sum1 = arg_roll_rate_command - arg_roll_rate_body;
+
   // Outport: '<Root>/aileron_deflection' incorporates:
   //   DiscreteIntegrator: '<Root>/Discrete-Time Integrator'
   //   Gain: '<Root>/Gain'
   //   Gain: '<S1>/Gain'
-  //   Inport: '<Root>/roll_rate'
   //   Inport: '<Root>/speed_magnitude'
-  //   Lookup_n-D: '<Root>/Kp_roll_damper'
+  //   Lookup_n-D: '<Root>/Kp_Roll_Damper'
   //   Product: '<Root>/Product1'
   //   Sum: '<Root>/Sum'
 
-  arg_aileron_deflection = (roll_damper_DW.DiscreteTimeIntegrator_DSTATE -
-    arg_roll_rate * look1_iflf_binlxpw_rd(arg_speed_magnitude,
-    roll_damper_P.Kp_roll_damper_bp01Data,
-    roll_damper_P.Kp_roll_damper_tableData, 10U)) * roll_damper_P.Gain_Gain *
-    roll_damper_P.Gain_Gain_b;
+  arg_aileron_deflection = -(rtb_Sum1 * look1_binlxpw(arg_speed_magnitude,
+    roll_damper_controller_ConstP.Kp_Roll_Damper_bp01Data,
+    roll_damper_controller_ConstP.Kp_Roll_Damper_tableData, 10U) +
+    roll_damper_controller_DW.DiscreteTimeIntegrator_DSTATE) *
+    57.295779513082323;
 
   // Update for DiscreteIntegrator: '<Root>/Discrete-Time Integrator' incorporates:
-  //   Inport: '<Root>/roll_rate'
-  //   Inport: '<Root>/roll_rate_command'
   //   Inport: '<Root>/speed_magnitude'
-  //   Lookup_n-D: '<Root>/Ki_roll_damper'
+  //   Lookup_n-D: '<Root>/Ki_Roll_Damper'
   //   Product: '<Root>/Product2'
-  //   Sum: '<Root>/Sum1'
 
-  roll_damper_DW.DiscreteTimeIntegrator_DSTATE += (arg_roll_rate_command -
-    arg_roll_rate) * look1_iflf_binlxpw_rd(arg_speed_magnitude,
-    roll_damper_P.Ki_roll_damper_bp01Data,
-    roll_damper_P.Ki_roll_damper_tableData, 10U) *
-    roll_damper_P.DiscreteTimeIntegrator_gainval;
-  if (roll_damper_DW.DiscreteTimeIntegrator_DSTATE >=
-      roll_damper_P.DiscreteTimeIntegrator_UpperSat) {
-    roll_damper_DW.DiscreteTimeIntegrator_DSTATE =
-      roll_damper_P.DiscreteTimeIntegrator_UpperSat;
-  } else if (roll_damper_DW.DiscreteTimeIntegrator_DSTATE <=
-             roll_damper_P.DiscreteTimeIntegrator_LowerSat) {
-    roll_damper_DW.DiscreteTimeIntegrator_DSTATE =
-      roll_damper_P.DiscreteTimeIntegrator_LowerSat;
-  }
-
-  // End of Update for DiscreteIntegrator: '<Root>/Discrete-Time Integrator'
+  roll_damper_controller_DW.DiscreteTimeIntegrator_DSTATE += look1_binlxpw
+    (arg_speed_magnitude, roll_damper_controller_ConstP.Ki_Roll_Damper_bp01Data,
+     roll_damper_controller_ConstP.Ki_Roll_Damper_tableData, 10U) * rtb_Sum1 *
+    0.004;
 }
 
 // Model initialize function
-void roll_damper::initialize()
+void roll_damper_controller::initialize()
 {
-  // InitializeConditions for DiscreteIntegrator: '<Root>/Discrete-Time Integrator'
-  roll_damper_DW.DiscreteTimeIntegrator_DSTATE =
-    roll_damper_P.DiscreteTimeIntegrator_IC;
+  // (no initialization code required)
 }
 
 // Model terminate function
-void roll_damper::terminate()
+void roll_damper_controller::terminate()
 {
   // (no terminate code required)
 }
 
 // Constructor
-roll_damper::roll_damper() :
-  roll_damper_DW(),
-  roll_damper_M()
+roll_damper_controller::roll_damper_controller() :
+  roll_damper_controller_DW(),
+  roll_damper_controller_M()
 {
   // Currently there is no constructor body generated.
 }
 
 // Destructor
 // Currently there is no destructor body generated.
-roll_damper::~roll_damper() = default;
+roll_damper_controller::~roll_damper_controller() = default;
 
 // Real-Time Model get method
-roll_damper::RT_MODEL_roll_damper_T * roll_damper::getRTM()
+roll_damper_controller::RT_MODEL_roll_damper_controll_T * roll_damper_controller::
+  getRTM()
 {
-  return (&roll_damper_M);
+  return (&roll_damper_controller_M);
 }
 
 //
