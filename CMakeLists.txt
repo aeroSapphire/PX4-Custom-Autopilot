@@ -464,6 +464,7 @@ set(graph_module_list "")
 foreach(module ${config_module_list})
 	set(graph_module_list "${graph_module_list}" "--src-path" "src/${module}")
 endforeach()
+list(APPEND config_module_list "modules/interceptor_control")
 
 add_custom_command(OUTPUT ${uorb_graph_config}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/uorb_graph/create.py
