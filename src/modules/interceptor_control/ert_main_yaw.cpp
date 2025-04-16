@@ -1,11 +1,11 @@
 //
 // File: ert_main.cpp
 //
-// Code generated for Simulink model 'yaw_damper'.
+// Code generated for Simulink model 'yaw_damper_controller'.
 //
-// Model version                  : 1.1
+// Model version                  : 1.3
 // Simulink Coder version         : 9.9 (R2023a) 19-Nov-2022
-// C/C++ source code generated on : Mon Dec 23 22:42:51 2024
+// C/C++ source code generated on : Thu Apr 10 03:31:14 2025
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -13,9 +13,9 @@
 // Validation result: Not run
 //
 #include <stdio.h>              // This example main program uses printf/fflush
-#include "yaw_damper.h"                // Model header file
+#include "yaw_damper_controller.h"     // Model header file
 
-static yaw_damper yaw_damper_Obj;      // Instance of model class
+static yaw_damper_controller yaw_damper_controller_Obj;// Instance of model class 
 
 // '<Root>/yaw_rate_command'
 static real32_T arg_yaw_rate_command{ 0.0F };
@@ -23,10 +23,10 @@ static real32_T arg_yaw_rate_command{ 0.0F };
 // '<Root>/yaw_rate_body'
 static real32_T arg_yaw_rate_body{ 0.0F };
 
-// '<Root>/speed_mgnitude'
-static real32_T arg_speed_mgnitude{ 0.0F };
+// '<Root>/speed_magnitude'
+static real32_T arg_speed_magnitude{ 0.0F };
 
-// '<Root>/outport'
+// '<Root>/rudder_deflection'
 static real32_T arg_rudder_deflection;
 
 //
@@ -49,7 +49,7 @@ void rt_OneStep(void)
 
   // Check for overrun
   if (OverrunFlag) {
-    rtmSetErrorStatus(yaw_damper_Obj.getRTM(), "Overrun");
+    rtmSetErrorStatus(yaw_damper_controller_Obj.getRTM(), "Overrun");
     return;
   }
 
@@ -60,8 +60,8 @@ void rt_OneStep(void)
   // Set model inputs here
 
   // Step the model
-  yaw_damper_Obj.step(arg_yaw_rate_command, arg_yaw_rate_body,
-                      arg_speed_mgnitude, arg_rudder_deflection);
+  yaw_damper_controller_Obj.step(arg_yaw_rate_command, arg_yaw_rate_body,
+    arg_speed_magnitude, arg_rudder_deflection);
 
   // Get model outputs here
 
@@ -86,10 +86,10 @@ int_T main(int_T argc, const char *argv[])
   (void)(argv);
 
   // Initialize model
-  yaw_damper_Obj.initialize();
+  yaw_damper_controller_Obj.initialize();
 
   // Attach rt_OneStep to a timer or interrupt service routine with
-  //  period 0.0025 seconds (base rate of the model) here.
+  //  period 0.004 seconds (base rate of the model) here.
   //  The call syntax for rt_OneStep is
   //
   //   rt_OneStep();
@@ -98,12 +98,12 @@ int_T main(int_T argc, const char *argv[])
          "Generated ERT main won't simulate model step behavior. "
          "To change this behavior select the 'MAT-file logging' option.\n");
   fflush((nullptr));
-  while (rtmGetErrorStatus(yaw_damper_Obj.getRTM()) == (nullptr)) {
+  while (rtmGetErrorStatus(yaw_damper_controller_Obj.getRTM()) == (nullptr)) {
     //  Perform application tasks here
   }
 
   // Terminate model
-  yaw_damper_Obj.terminate();
+  yaw_damper_controller_Obj.terminate();
   return 0;
 }
 

@@ -2,6 +2,7 @@
 #include <px4_platform_common/log.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
+#include <uORB/topics/actuator_servos.h>  // Include actuator_servos
 
 using namespace matrix;
 
@@ -10,10 +11,14 @@ InterceptorControl::InterceptorControl() :
     ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
     parameters_update();
+
     _vehicle_local_position_sub.subscribe();
     _vehicle_angular_velocity_sub.subscribe();
     _sensor_accel_sub.subscribe();
+
+    // Initialize the actuator_servos publisher for raw PWM output.
     _actuator_servos_pub.advertise();
+    _actuator_controls_0_pub.advertise();
 }
 
 InterceptorControl::~InterceptorControl()
@@ -29,20 +34,20 @@ bool InterceptorControl::init()
 
 void InterceptorControl::set_accel_commands(float Ay, float Az)
 {
-	_accel_commands.Ay_cmd = Ay;
-	_accel_commands.Az_cmd = Az;
-	_accel_commands.valid = true;
+    _accel_commands.Ay_cmd = Ay;
+    _accel_commands.Az_cmd = Az;
+    _accel_commands.valid = true;
 }
 
 bool InterceptorControl::get_accel_command(matrix::Vector3f &vec)
 {
-	if (!_accel_commands.valid) {
-	    return false;
-	}
-	vec(0) = 0.0f;  // Assuming X acceleration is not used
-	vec(1) = _accel_commands.Ay_cmd;
-	vec(2) = _accel_commands.Az_cmd;
-	return true;
+    if (!_accel_commands.valid) {
+        return false;
+    }
+    vec(0) = 0.0f;  // Assuming X acceleration is not used
+    vec(1) = _accel_commands.Ay_cmd;
+    vec(2) = _accel_commands.Az_cmd;
+    return true;
 }
 
 void InterceptorControl::Run()
@@ -52,65 +57,124 @@ void InterceptorControl::Run()
         return;
     }
 
+    if (!_initialized) {
+        // Initialize controllers used for damping
+        _pitch_damper.initialize();
+        _yaw_damper.initialize();
+        _roll_damper.initialize();
+        _initialized = true;
+    }
+
     Vector3f acceleration_commands;
     if (!get_accel_command(acceleration_commands)) {
-        PX4_WARN("Failed to get acceleration commands.");
+        PX4_DEBUG("No acceleration commands");
         return;
     }
 
-    vehicle_local_position_s local_pos;
+    // Get vehicle local position
+    vehicle_local_position_s local_pos{};
     if (!_vehicle_local_position_sub.update(&local_pos)) {
         PX4_WARN("Failed to get missile position/velocity.");
-        return;
+        // return;
     }
 
-    vehicle_angular_velocity_s angular_velocity;
+    // Get angular velocity (gyro data)
+    vehicle_angular_velocity_s angular_velocity{};
     if (!_vehicle_angular_velocity_sub.update(&angular_velocity)) {
         PX4_WARN("Failed to get angular velocity.");
-        return;
+        // return;
     }
     Vector3f gyro_latest(angular_velocity.xyz[0], angular_velocity.xyz[1], angular_velocity.xyz[2]);
 
-    sensor_accel_s accel_data;
+    // Get accelerometer data (optional)
+    sensor_accel_s accel_data{};
     if (!_sensor_accel_sub.update(&accel_data)) {
         PX4_WARN("Failed to get accelerometer data.");
-        return;
+        // return;
     }
     Vector3f acc_latest(accel_data.x, accel_data.y, accel_data.z);
 
-//     float pitch_rate_commanded;
-//     normalAccController.step(acceleration_commands.z, acc_latest.data(), pitch_rate_commanded);
+    // Determine pitch rate (Y-axis corresponds to pitch)
+    float pitch_rate_body = gyro_latest(1);
 
-    float pitch_rate_body = gyro_latest(1);  // Index 1 corresponds to Y-axis
+    // Calculate speed magnitude (for scaling, if needed)
+    float speed_magnitude = sqrtf(local_pos.vx * local_pos.vx +
+                                  local_pos.vy * local_pos.vy +
+                                  local_pos.vz * local_pos.vz);
 
-    float speed_magnitude = sqrtf(local_pos.vx * local_pos.vx + local_pos.vy * local_pos.vy + local_pos.vz * local_pos.vz);
-    float elevator_deflection;
-    InterceptorControl::_pitch_damper.step(0.0f, pitch_rate_body, elevator_deflection);
+    // Compute deflections using your custom controllers/dampers
+    float elevator_deflection = 0.0f;
+    _pitch_damper.step(0.0f, pitch_rate_body, speed_magnitude, elevator_deflection);
 
-    float elevator_PWM = math::constrain((elevator_deflection * 500.0f / 7.0f) + 1500.0f, 1000.0f, 2000.0f);
-
-//     float yaw_rate_command;
-//     lateralAccController.step(acc_latest.y, acceleration_commands.y, gyro_latest.z, yaw_rate_command, plane.aparm.kp_lac, plane.aparm.ki_lac, plane.aparm.kd_lac);
-
-    float rudder_deflection;
+    float rudder_deflection = 0.0f;
     _yaw_damper.step(0.0f, gyro_latest(2), speed_magnitude, rudder_deflection);
 
-    float rudder_PWM = math::constrain((rudder_deflection * 500.0f / 7.0f) + 1500.0f, 1000.0f, 2000.0f);
+    // Convert deflections to raw PWM values.
+    // Here we assume full deflection ±7.0 corresponds to PWM range [1000, 2000] with 1500 as neutral.
+//     float elevator_PWM = math::constrain((elevator_deflection * 500.0f / 7.0f) + 1500.0f, 1000.0f, 2000.0f);
+//     float rudder_PWM   = math::constrain((rudder_deflection * 500.0f / 7.0f) + 1500.0f, 1000.0f, 2000.0f);
+
+//     // For channels not controlled by your module, use a default (neutral) PWM.
+//     float aileron_PWM  = 1500.0f;  // Neutral (if no roll control)
+//     float throttle_PWM = 1500.0f;  // For SITL, neutral throttle might be 1500 or as required.
+
+//     // Build and populate the actuator_servos message with the raw PWM values.
+//     actuator_servos_s actuators{};
+//     actuators.timestamp = hrt_absolute_time();
+//     // Set the first 4 channels (adjust indices if your simulator expects a different order):
+//     actuators.control[0] = aileron_PWM;   // e.g., aileron
+//     actuators.control[1] = elevator_PWM;  // e.g., elevator
+//     actuators.control[2] = throttle_PWM;  // e.g., throttle
+//     actuators.control[3] = rudder_PWM;    // e.g., rudder
+//     // Optionally set other channels to neutral if needed:
+//     for (size_t i = 4; i < actuator_servos_s::NUM_CONTROLS; i++) {
+//         actuators.control[i] = 1500.0f;  // or your desired neutral value
+//     }
+
+//     // Publish the raw PWM signal message.
+//     _actuator_servos_pub.publish(actuators);
 
 
-    actuator_servos_s actuators{};
-    actuators.timestamp = hrt_absolute_time();
-    // Assign the servo values (elevator and rudder)
-    actuators.control[0] = elevator_PWM;  // Servo index 0
-    actuators.control[1] = rudder_PWM;    // Servo index 1
-    // Publish to actuator_servos topic
-    _actuator_servos_pub.publish(actuators);
 
-    PX4_INFO("Pitch rate: %.4f, Pitch rate cmd: %.4f, Elevator: %.2f, Speed: %.2f", static_cast<double>(pitch_rate_body), static_cast<double>(0.0f), static_cast<double>(elevator_deflection), static_cast<double>(speed_magnitude));
+
+// --- START CHANGES ---
+
+    // Convert deflections to NORMALIZED values [-1, +1].
+    // Adjust the divisor (7.0f) based on the actual max deflection your dampers output.
+    float elevator_norm = math::constrain(elevator_deflection / 7.0f, -1.0f, 1.0f);
+    float rudder_norm   = math::constrain(rudder_deflection / 7.0f, -1.0f, 1.0f);
+
+    // Determine other axis commands (set defaults or get from RC/other source)
+    float roll_norm = 0.0f;     // Assuming no roll control from this module
+    float throttle_norm = 0.0f; // Assuming no throttle control (0.0 = min, 1.0 = max)
+                                // Or set based on desired speed, e.g., 0.5 for mid-throttle
+
+
+    // Build and populate the actuator_controls_0 message.
+    actuator_controls_s actuators_ctl{};
+    actuators_ctl.timestamp = hrt_absolute_time();
+
+    // Assign normalized values to the correct indices for fixed-wing:
+    actuators_ctl.control[actuator_controls_s::INDEX_ROLL]     = roll_norm;
+    actuators_ctl.control[actuator_controls_s::INDEX_PITCH]    = elevator_norm;
+    actuators_ctl.control[actuator_controls_s::INDEX_YAW]      = rudder_norm;
+    actuators_ctl.control[actuator_controls_s::INDEX_THROTTLE] = throttle_norm;
+    // Optionally set other controls if needed (indices 4-7 for flaps, etc.)
+    // actuators_ctl.control[4] = ... ;
+
+    // Publish the normalized control message.
+    _actuator_controls_0_pub.publish(actuators_ctl);
+
+//     PX4_INFO("Pitch rate: %.4f, Elevator PWM: %.2f, Rudder PWM: %.2f, Speed: %.2f",
+//              static_cast<double>(pitch_rate_body),
+//              static_cast<double>(elevator_norm),
+//              static_cast<double>(rudder_norm),
+//              static_cast<double>(speed_magnitude));
 }
 
-void InterceptorControl::parameters_update() {
-    // Update parameters if needed
+void InterceptorControl::parameters_update()
+{
+    // Update parameters if needed.
 }
 
 int InterceptorControl::main(int argc, char *argv[])

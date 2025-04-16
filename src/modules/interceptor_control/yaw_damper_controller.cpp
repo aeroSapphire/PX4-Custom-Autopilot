@@ -1,20 +1,21 @@
 //
-// File: yaw_damper.cpp
+// File: yaw_damper_controller.cpp
 //
-// Code generated for Simulink model 'yaw_damper'.
+// Code generated for Simulink model 'yaw_damper_controller'.
 //
-// Model version                  : 1.1
+// Model version                  : 1.3
 // Simulink Coder version         : 9.9 (R2023a) 19-Nov-2022
-// C/C++ source code generated on : Mon Dec 23 22:42:51 2024
+// C/C++ source code generated on : Thu Apr 10 03:31:14 2025
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex-M
 // Code generation objectives: Unspecified
 // Validation result: Not run
 //
-#include "yaw_damper.h"
+#include "yaw_damper_controller.h"
 #include "rtwtypes_yaw.h"
-#include "yaw_damper_private.h"
+#include "yaw_damper_controller_private.h"
+#include "yaw_damper_controller_data.cpp"
 
 real32_T look1_iflf_binlxpw_yd(real32_T u0, const real32_T bp0[], const real32_T
   table[], uint32_T maxIndex)
@@ -75,79 +76,71 @@ real32_T look1_iflf_binlxpw_yd(real32_T u0, const real32_T bp0[], const real32_T
 }
 
 // Model step function
-void yaw_damper::step(real32_T arg_yaw_rate_command, real32_T arg_yaw_rate_body,
-                      real32_T arg_speed_mgnitude, real32_T
-                      &arg_rudder_deflection)
+void yaw_damper_controller::step(real32_T arg_yaw_rate_command, real32_T
+  arg_yaw_rate_body, real32_T arg_speed_magnitude, real32_T
+  &arg_rudder_deflection)
 {
-  // Outport: '<Root>/outport' incorporates:
+  real32_T rtb_Sum1;
+
+  // Sum: '<Root>/Sum1' incorporates:
+  //   Inport: '<Root>/yaw_rate_body'
+  //   Inport: '<Root>/yaw_rate_command'
+
+  rtb_Sum1 = arg_yaw_rate_command - arg_yaw_rate_body;
+
+  // Outport: '<Root>/rudder_deflection' incorporates:
   //   DiscreteIntegrator: '<Root>/Discrete-Time Integrator'
   //   Gain: '<S1>/Gain'
-  //   Inport: '<Root>/speed_mgnitude'
-  //   Inport: '<Root>/yaw_rate_body'
-  //   Lookup_n-D: '<Root>/Kp'
+  //   Inport: '<Root>/speed_magnitude'
+  //   Lookup_n-D: '<Root>/Kp_Yaw_Damper'
   //   Product: '<Root>/Product1'
   //   Sum: '<Root>/Sum'
 
-  arg_rudder_deflection = (yaw_damper_DW.DiscreteTimeIntegrator_DSTATE -
-    arg_yaw_rate_body * look1_iflf_binlxpw_yd(arg_speed_mgnitude,
-    yaw_damper_P.Kp_bp01Data, yaw_damper_P.Kp_tableData, 10U)) *
-    yaw_damper_P.Gain_Gain;
+  arg_rudder_deflection = (rtb_Sum1 * look1_iflf_binlxpw_yd(arg_speed_magnitude,
+    yaw_damper_controller_ConstP.Kp_Yaw_Damper_bp01Data,
+    yaw_damper_controller_ConstP.Kp_Yaw_Damper_tableData, 10U) +
+    yaw_damper_controller_DW.DiscreteTimeIntegrator_DSTATE) * 57.2957802F;
 
   // Update for DiscreteIntegrator: '<Root>/Discrete-Time Integrator' incorporates:
-  //   Inport: '<Root>/speed_mgnitude'
-  //   Inport: '<Root>/yaw_rate_body'
-  //   Inport: '<Root>/yaw_rate_command'
-  //   Lookup_n-D: '<Root>/Ki'
+  //   Inport: '<Root>/speed_magnitude'
+  //   Lookup_n-D: '<Root>/Ki_Yaw_Damper'
   //   Product: '<Root>/Product2'
-  //   Sum: '<Root>/Sum1'
 
-  yaw_damper_DW.DiscreteTimeIntegrator_DSTATE += (arg_yaw_rate_command -
-    arg_yaw_rate_body) * look1_iflf_binlxpw_yd(arg_speed_mgnitude,
-    yaw_damper_P.Ki_bp01Data, yaw_damper_P.Ki_tableData, 10U) *
-    yaw_damper_P.DiscreteTimeIntegrator_gainval;
-  if (yaw_damper_DW.DiscreteTimeIntegrator_DSTATE >=
-      yaw_damper_P.DiscreteTimeIntegrator_UpperSat) {
-    yaw_damper_DW.DiscreteTimeIntegrator_DSTATE =
-      yaw_damper_P.DiscreteTimeIntegrator_UpperSat;
-  } else if (yaw_damper_DW.DiscreteTimeIntegrator_DSTATE <=
-             yaw_damper_P.DiscreteTimeIntegrator_LowerSat) {
-    yaw_damper_DW.DiscreteTimeIntegrator_DSTATE =
-      yaw_damper_P.DiscreteTimeIntegrator_LowerSat;
-  }
-
-  // End of Update for DiscreteIntegrator: '<Root>/Discrete-Time Integrator'
+  yaw_damper_controller_DW.DiscreteTimeIntegrator_DSTATE += look1_iflf_binlxpw_yd
+    (arg_speed_magnitude, yaw_damper_controller_ConstP.Ki_Yaw_Damper_bp01Data,
+     yaw_damper_controller_ConstP.Ki_Yaw_Damper_tableData, 10U) * rtb_Sum1 *
+    0.004F;
 }
 
 // Model initialize function
-void yaw_damper::initialize()
+void yaw_damper_controller::initialize()
 {
-  // InitializeConditions for DiscreteIntegrator: '<Root>/Discrete-Time Integrator'
-  yaw_damper_DW.DiscreteTimeIntegrator_DSTATE =
-    yaw_damper_P.DiscreteTimeIntegrator_IC;
+  // (no initialization code required)
 }
 
 // Model terminate function
-void yaw_damper::terminate()
+void yaw_damper_controller::terminate()
 {
   // (no terminate code required)
 }
 
 // Constructor
-yaw_damper::yaw_damper() :
-  yaw_damper_DW(),
-  yaw_damper_M()
+yaw_damper_controller::yaw_damper_controller() :
+  yaw_damper_controller_DW(),
+  yaw_damper_controller_M()
 {
   // Currently there is no constructor body generated.
 }
 
 // Destructor
 // Currently there is no destructor body generated.
-yaw_damper::~yaw_damper() = default;
+yaw_damper_controller::~yaw_damper_controller() = default;
 
 // Real-Time Model get method
-yaw_damper::RT_MODEL_yaw_damper_T * yaw_damper::getRTM()
+yaw_damper_controller::RT_MODEL_yaw_damper_controlle_T * yaw_damper_controller::
+  getRTM()
 {
-  return (&yaw_damper_M);
+  return (&yaw_damper_controller_M);
 }
 
 //
