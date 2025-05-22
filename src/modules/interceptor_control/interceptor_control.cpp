@@ -109,36 +109,6 @@ void InterceptorControl::Run()
     float rudder_deflection = 0.0f;
     _yaw_damper.step(0.0f, gyro_latest(2), speed_magnitude, rudder_deflection);
 
-    // Convert deflections to raw PWM values.
-    // Here we assume full deflection ±7.0 corresponds to PWM range [1000, 2000] with 1500 as neutral.
-//     float elevator_PWM = math::constrain((elevator_deflection * 500.0f / 7.0f) + 1500.0f, 1000.0f, 2000.0f);
-//     float rudder_PWM   = math::constrain((rudder_deflection * 500.0f / 7.0f) + 1500.0f, 1000.0f, 2000.0f);
-
-//     // For channels not controlled by your module, use a default (neutral) PWM.
-//     float aileron_PWM  = 1500.0f;  // Neutral (if no roll control)
-//     float throttle_PWM = 1500.0f;  // For SITL, neutral throttle might be 1500 or as required.
-
-//     // Build and populate the actuator_servos message with the raw PWM values.
-//     actuator_servos_s actuators{};
-//     actuators.timestamp = hrt_absolute_time();
-//     // Set the first 4 channels (adjust indices if your simulator expects a different order):
-//     actuators.control[0] = aileron_PWM;   // e.g., aileron
-//     actuators.control[1] = elevator_PWM;  // e.g., elevator
-//     actuators.control[2] = throttle_PWM;  // e.g., throttle
-//     actuators.control[3] = rudder_PWM;    // e.g., rudder
-//     // Optionally set other channels to neutral if needed:
-//     for (size_t i = 4; i < actuator_servos_s::NUM_CONTROLS; i++) {
-//         actuators.control[i] = 1500.0f;  // or your desired neutral value
-//     }
-
-//     // Publish the raw PWM signal message.
-//     _actuator_servos_pub.publish(actuators);
-
-
-
-
-// --- START CHANGES ---
-
     // Convert deflections to NORMALIZED values [-1, +1].
     // Adjust the divisor (7.0f) based on the actual max deflection your dampers output.
     float elevator_norm = math::constrain(elevator_deflection / 7.0f, -1.0f, 1.0f);
@@ -165,11 +135,18 @@ void InterceptorControl::Run()
     // Publish the normalized control message.
     _actuator_controls_0_pub.publish(actuators_ctl);
 
-//     PX4_INFO("Pitch rate: %.4f, Elevator PWM: %.2f, Rudder PWM: %.2f, Speed: %.2f",
-//              static_cast<double>(pitch_rate_body),
-//              static_cast<double>(elevator_norm),
-//              static_cast<double>(rudder_norm),
-//              static_cast<double>(speed_magnitude));
+    static hrt_abstime last_print_time = 0;
+    const hrt_abstime now = hrt_absolute_time();
+
+    if (now - last_print_time > 1_s) { // print every 1 second
+        last_print_time = now;
+
+    PX4_INFO("Pitch rate: %.4f, Elevator Deflection: %.2f, Rudder Deflection: %.2f, Speed: %.2f",
+             (double)pitch_rate_body,
+             (double)elevator_deflection,
+             (double)rudder_deflection,
+             (double)speed_magnitude);
+}
 }
 
 void InterceptorControl::parameters_update()
