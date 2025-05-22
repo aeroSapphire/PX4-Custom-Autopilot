@@ -56,7 +56,7 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 
 		// Maximally allow the airspeed reading to be at FW_AIRSPD_MAX when arming. This is to catch very badly calibrated
 		// airspeed sensors, but also high wind conditions that prevent a forward flight of the vehicle.
-		float arming_max_airspeed_allowed = 20.f;
+		float arming_max_airspeed_allowed = 300.f;
 		param_get(_param_fw_airspd_max_handle, &arming_max_airspeed_allowed);
 
 		/*
