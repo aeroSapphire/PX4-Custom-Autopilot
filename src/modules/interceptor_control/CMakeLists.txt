@@ -7,6 +7,8 @@ px4_add_module(
 		pitch_damper_controller.cpp
 		roll_damper_controller.cpp
 		yaw_damper_controller.cpp
+		normal_acceleration_controller.cpp
+		lateral_acceleration_controller.cpp
 	DEPENDS
 		uORB
 		px4_work_queue

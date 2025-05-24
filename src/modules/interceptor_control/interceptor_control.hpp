@@ -3,6 +3,8 @@
 #include "yaw_damper_controller.h"
 #include "roll_damper_controller.h"
 #include "pitch_damper_controller.h"
+#include "lateral_acceleration_controller.h"
+#include "normal_acceleration_controller.h"
 
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/mathlib.h>
@@ -33,6 +35,7 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_servos.h>
+#include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/actuator_controls.h>
 
@@ -71,13 +74,15 @@ public:
 	roll_damper_controller _roll_damper;
 	pitch_damper_controller _pitch_damper;
 	yaw_damper_controller _yaw_damper;
+	normal_acceleration_controller _normal_acceleration_controller;
+	lateral_acceleration_controller _lateral_acceleration_controller;
 
 
 
 private:
 
-	uORB::SubscriptionCallbackWorkItem _att_sub{this, ORB_ID(vehicle_attitude)};  // Interceptor attitude
-	uORB::Subscription _acc_sub{ORB_ID(vehicle_local_position)};  // Contains acceleration (Ax, Ay, Az)
+	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)};  // Interceptor attitude
+	// uORB::Subscription _acc_sub{ORB_ID(vehicle_local_position)};  // Contains acceleration (Ax, Ay, Az)
 	uORB::SubscriptionData<airspeed_validated_s> _airspd_sub{ORB_ID(airspeed_validated)};  // Speed (TAS)
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)}; // Declare it here
@@ -85,9 +90,10 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};				/**< vehicle status subscription */
 	uORB::Subscription _sensor_accel_sub{ORB_ID(sensor_accel)}; // Correctly declare the subscription
 
-	uORB::Publication<actuator_servos_s> _actuator_servos_pub{ORB_ID(actuator_servos)};
-	uORB::Publication<actuator_controls_s> _actuator_controls_0_pub{ORB_ID(actuator_controls_0)};
-
+	// uORB::Publication<actuator_servos_s> _actuator_servos_pub{ORB_ID(actuator_servos)};
+	// uORB::Publication<actuator_controls_s> _actuator_controls_0_pub{ORB_ID(actuator_controls_0)};
+	uORB::Publication<actuator_servos_s> _servos_pub{ORB_ID(actuator_servos)};
+	uORB::Publication<actuator_motors_s> _motors_pub{ORB_ID(actuator_motors)};
 
 	AccelCommands _accel_commands;
 
